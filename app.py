@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+from scipy import stats as sp_stats
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -181,11 +184,12 @@ st.markdown(f"""
 st.success(f"✅ **{uploaded_file.name}** cargado correctamente")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📋  Vista previa",
     "📐  Estadísticas descriptivas",
     "🔢  Frecuencias",
     "🧩  Estructura",
+    "📈  Gráficas",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -341,3 +345,143 @@ with tab4:
     dtype_count = df.dtypes.astype(str).value_counts().reset_index()
     dtype_count.columns = ["Tipo", "Columnas"]
     st.dataframe(dtype_count, use_container_width=True, hide_index=True, height=180)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 5 · Gráficas
+# ══════════════════════════════════════════════════════════════════════════════
+with tab5:
+    st.markdown('<p class="section-title" style="margin-top:.8rem;">Histograma y análisis de normalidad</p>',
+                unsafe_allow_html=True)
+
+    if not num_cols:
+        st.info("El dataset no contiene columnas numéricas para graficar.")
+    else:
+        # ── Column selector ──
+        col_sel = st.selectbox(
+            "Variable a graficar",
+            num_cols,
+            label_visibility="collapsed",
+        )
+        n_bins = st.slider("Número de barras (bins)", min_value=3, max_value=30, value=8,
+                           key="hist_bins")
+
+        col_data = df[col_sel].dropna()
+        mu    = col_data.mean()
+        sigma = col_data.std()
+        skew  = col_data.skew()
+        kurt  = col_data.kurt()   # exceso de curtosis (Fisher)
+        n     = len(col_data)
+
+        # ── Shapiro-Wilk (solo si n <= 5000) ──
+        if n <= 5000:
+            stat_sw, p_sw = sp_stats.shapiro(col_data)
+            shapiro_done  = True
+        else:
+            shapiro_done  = False
+
+        # ── Layout: chart | analysis ──
+        gcol, acol = st.columns([3, 2], gap="large")
+
+        with gcol:
+            fig, ax = plt.subplots(figsize=(6.5, 4.2))
+            fig.patch.set_facecolor("#F7F9FD")
+            ax.set_facecolor("#FFFFFF")
+
+            # Histogram
+            counts, bin_edges, patches = ax.hist(
+                col_data, bins=n_bins,
+                color="#1A56DB", edgecolor="#FFFFFF",
+                linewidth=0.8, alpha=0.88,
+            )
+
+            # PDF curve N(µ, σ) overlay
+            x_range = np.linspace(col_data.min(), col_data.max(), 300)
+            bin_width = bin_edges[1] - bin_edges[0]
+            pdf_scaled = sp_stats.norm.pdf(x_range, mu, sigma) * n * bin_width
+            ax.plot(x_range, pdf_scaled, color="#E53E3E", linewidth=2,
+                    linestyle="--", label=f"PDF Normal N({mu:.1f}, {sigma:.1f})")
+
+            # Mean line
+            ax.axvline(mu, color="#1E3A8A", linewidth=1.6,
+                       linestyle=":", label=f"Media = {mu:.2f}")
+
+            ax.set_xlabel(col_sel, fontsize=10, color="#0D1B2A")
+            ax.set_ylabel("Frecuencia", fontsize=10, color="#0D1B2A")
+            ax.set_title(f"Histograma — {col_sel}", fontsize=11,
+                         fontweight="bold", color="#0D1B2A", pad=10)
+            ax.legend(fontsize=8.5, framealpha=0.7)
+            ax.spines[["top", "right"]].set_visible(False)
+            ax.spines[["left", "bottom"]].set_color("#CBD5E0")
+            ax.tick_params(colors="#64748B", labelsize=8.5)
+            ax.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+
+        with acol:
+            # ── Normalidad: interpretación basada en las diapositivas del profe ──
+            st.markdown("#### 🔍 ¿Se ven normales los datos?")
+
+            # Criterio sesgo
+            if   abs(skew) < 0.5:  skew_verdict = ("✅", "Sesgo bajo", "La distribución es aproximadamente simétrica, como una campana.")
+            elif abs(skew) < 1.0:  skew_verdict = ("⚠️", "Sesgo moderado", "Hay cierta asimetría; el histograma no es perfectamente simétrico.")
+            else:                   skew_verdict = ("❌", "Sesgo alto", "La distribución está claramente sesgada; probablemente **no** es Normal.")
+
+            # Criterio curtosis (exceso)
+            if   abs(kurt) < 0.5:  kurt_verdict = ("✅", "Curtosis normal", "La 'altura' de la campana es consistente con una Normal.")
+            elif abs(kurt) < 1.5:  kurt_verdict = ("⚠️", "Curtosis moderada", "Las colas difieren un poco de la Normal estándar.")
+            else:                   kurt_verdict = ("❌", "Curtosis alta", "Las colas son muy pesadas o muy ligeras; hay diferencia con la Normal.")
+
+            # Shapiro-Wilk
+            if shapiro_done:
+                if   p_sw > 0.10: sw_verdict = ("✅", f"Shapiro-Wilk p = {p_sw:.4f}", "No se rechaza normalidad (p > 0.10).")
+                elif p_sw > 0.05: sw_verdict = ("⚠️", f"Shapiro-Wilk p = {p_sw:.4f}", "Evidencia marginal contra normalidad (0.05 < p ≤ 0.10).")
+                else:             sw_verdict = ("❌", f"Shapiro-Wilk p = {p_sw:.4f}", "Se rechaza normalidad (p ≤ 0.05).")
+            else:
+                sw_verdict = ("ℹ️", "Shapiro-Wilk", "Muestra > 5 000; prueba omitida.")
+
+            checks = [skew_verdict, kurt_verdict, sw_verdict]
+            positives = sum(1 for c in checks if c[0] == "✅")
+
+            for icon, label, explanation in checks:
+                st.markdown(f"""
+                <div style="background:#FFFFFF; border:1px solid #E2EAF4; border-radius:10px;
+                            padding:.75rem 1rem; margin-bottom:.6rem;">
+                    <div style="font-weight:600; font-size:.92rem; color:#0D1B2A;">
+                        {icon} {label}
+                    </div>
+                    <div style="font-size:.82rem; color:#64748B; margin-top:.2rem;">
+                        {explanation}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # ── Veredicto final ──
+            st.markdown("<hr style='border:none;border-top:1px solid #E2EAF4;margin:.8rem 0'>",
+                        unsafe_allow_html=True)
+            if positives == 3:
+                verdict_color, verdict_icon, verdict_text = "#1A56DB", "🔔", "Los datos **se comportan como una distribución Normal**. Puedes usar el modelo N(µ, σ²) de la diapositiva 16 del profe Horacio."
+            elif positives >= 2:
+                verdict_color, verdict_icon, verdict_text = "#D97706", "🟡", "Los datos son **aproximadamente normales**, con algunas desviaciones. Verifica visualmente si la curva roja se ajusta bien al histograma."
+            else:
+                verdict_color, verdict_icon, verdict_text = "#DC2626", "🚨", "Los datos **no parecen normales**. Considera otras distribuciones del árbol de decisión (diap. 20): Exponencial, Uniforme o alguna discreta."
+
+            st.markdown(f"""
+            <div style="background:#F0F4FF; border-left:4px solid {verdict_color};
+                        border-radius:0 10px 10px 0; padding:1rem 1.1rem;">
+                <div style="font-size:.95rem; font-weight:600; color:{verdict_color};">
+                    {verdict_icon} Veredicto
+                </div>
+                <div style="font-size:.85rem; color:#0D1B2A; margin-top:.3rem;">
+                    {verdict_text}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # ── Stats mini-table ──
+            st.markdown("<br>", unsafe_allow_html=True)
+            mini = pd.DataFrame({
+                "Parámetro": ["n", "Media (µ)", "Desv. Est. (σ)", "Sesgo", "Curtosis (exc.)"],
+                "Valor":     [n, f"{mu:.4f}", f"{sigma:.4f}", f"{skew:.4f}", f"{kurt:.4f}"],
+            })
+            st.dataframe(mini, use_container_width=True, hide_index=True, height=220)
