@@ -184,12 +184,13 @@ st.markdown(f"""
 st.success(f"✅ **{uploaded_file.name}** cargado correctamente")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📋  Vista previa",
     "📐  Estadísticas descriptivas",
     "🔢  Frecuencias",
     "🧩  Estructura",
     "📈  Gráficas",
+    "🧪  Prueba Z",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -485,3 +486,291 @@ with tab5:
                 "Valor":     [n, f"{mu:.4f}", f"{sigma:.4f}", f"{skew:.4f}", f"{kurt:.4f}"],
             })
             st.dataframe(mini, use_container_width=True, hide_index=True, height=220)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB 6 · Prueba Z para la media (una muestra)
+# Basada en las diapositivas del profe Horacio (UP Chiapas, 14 abril 2026)
+# Ruta: diap. 3 → definir H0/H1 → diap. 5/6/7 → calcular z → decidir p-valor
+# ══════════════════════════════════════════════════════════════════════════════
+with tab6:
+    st.markdown('<p class="section-title" style="margin-top:.8rem;">Prueba Z para la media — una muestra</p>',
+                unsafe_allow_html=True)
+
+    if not num_cols:
+        st.info("El dataset no contiene columnas numéricas.")
+    else:
+        # ── Step 1: selección de variable ──────────────────────────────────────
+        st.markdown("""
+        <div style="background:#EBF2FF;border-left:4px solid #1A56DB;border-radius:0 10px 10px 0;
+                    padding:.9rem 1.1rem;margin-bottom:1.2rem;">
+            <span style="font-size:.82rem;color:#1E3A8A;font-weight:600;">
+            📖 Ruta del profe Horacio (diap. 3): Plantear → H₀/H₁ → fijar α → calcular z → decidir
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        left_cfg, right_cfg = st.columns([1, 1], gap="large")
+
+        with left_cfg:
+            st.markdown("#### ① Selecciona la variable")
+            z_col = st.selectbox("Variable numérica", num_cols,
+                                 key="z_col", label_visibility="collapsed")
+            col_z = df[z_col].dropna()
+            n_z   = len(col_z)
+            xbar  = col_z.mean()
+            s_z   = col_z.std(ddof=1)
+
+            st.markdown(f"""
+            <div style="background:#FFFFFF;border:1px solid #E2EAF4;border-radius:10px;
+                        padding:.8rem 1.1rem;margin-top:.5rem;">
+                <span style="font-size:.78rem;color:#64748B;text-transform:uppercase;
+                             letter-spacing:.06em;font-weight:500;">Datos de la muestra</span><br>
+                <span style="font-size:.9rem;color:#0D1B2A;">
+                n = <b>{n_z}</b> &nbsp;|&nbsp; x̄ = <b>{xbar:.4f}</b> &nbsp;|&nbsp; s = <b>{s_z:.4f}</b>
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with right_cfg:
+            st.markdown("#### ② Parámetros de la prueba")
+            mu0 = st.number_input("Valor hipotético μ₀ (H₀: μ = μ₀)",
+                                  value=float(round(xbar, 2)),
+                                  format="%.4f", key="z_mu0")
+            tipo = st.radio(
+                "Tipo de prueba",
+                ["Dos colas  (H₁: μ ≠ μ₀)", "Cola derecha  (H₁: μ > μ₀)", "Cola izquierda  (H₁: μ < μ₀)"],
+                key="z_tipo",
+            )
+            alpha = st.select_slider("Nivel de significancia α",
+                                     options=[0.01, 0.05, 0.10],
+                                     value=0.05, key="z_alpha")
+            sigma_opc = st.radio("σ poblacional",
+                                 ["Desconocida — usar s muestral (recomendado)",
+                                  "Conocida — ingresar valor"],
+                                 key="z_sigma_opc")
+            sigma_val = s_z
+            if sigma_opc.startswith("Conocida"):
+                sigma_val = st.number_input("Valor de σ", value=float(round(s_z, 4)),
+                                            min_value=0.0001, format="%.4f", key="z_sigma_val")
+
+        st.markdown("<hr style='border:none;border-top:1px solid #E2EAF4;margin:1.4rem 0'>",
+                    unsafe_allow_html=True)
+
+        # ── Step 2: cálculos ───────────────────────────────────────────────────
+        from scipy.stats import norm as sp_norm
+
+        se      = sigma_val / np.sqrt(n_z)          # error estándar
+        z_obs   = (xbar - mu0) / se                 # estadístico z (diap. 9)
+
+        if tipo.startswith("Dos"):
+            p_val   = 2 * (1 - sp_norm.cdf(abs(z_obs)))
+            z_crit  = sp_norm.ppf(1 - alpha / 2)
+            rechaza = abs(z_obs) > z_crit
+            h1_str  = f"μ ≠ {mu0}"
+            cola    = "bilateral"
+        elif tipo.startswith("Cola d"):
+            p_val   = 1 - sp_norm.cdf(z_obs)
+            z_crit  = sp_norm.ppf(1 - alpha)
+            rechaza = z_obs > z_crit
+            h1_str  = f"μ > {mu0}"
+            cola    = "derecha"
+        else:
+            p_val   = sp_norm.cdf(z_obs)
+            z_crit  = -sp_norm.ppf(1 - alpha)
+            rechaza = z_obs < z_crit
+            h1_str  = f"μ < {mu0}"
+            cola    = "izquierda"
+
+        # Intervalo de confianza (diap. 13: x̄ ± z_α/2 · σ/√n)
+        z_ic  = sp_norm.ppf(1 - alpha / 2)
+        ic_li = xbar - z_ic * se
+        ic_ls = xbar + z_ic * se
+
+        # ── Step 3: mostrar fórmula y resultados ───────────────────────────────
+        res_col, plot_col = st.columns([1, 1], gap="large")
+
+        with res_col:
+            st.markdown("#### ③ Planteamiento y fórmula")
+
+            # Hipótesis
+            st.markdown(f"""
+            <div style="background:#FFFFFF;border:1px solid #E2EAF4;border-radius:12px;
+                        padding:1rem 1.2rem;margin-bottom:.8rem;">
+                <div style="font-size:.78rem;color:#64748B;text-transform:uppercase;
+                            letter-spacing:.06em;font-weight:500;margin-bottom:.4rem;">
+                    Hipótesis (diap. {"7" if cola=="bilateral" else "5" if cola=="derecha" else "6"})
+                </div>
+                <div style="font-size:1.05rem;color:#0D1B2A;font-family:Georgia,serif;">
+                    H₀ : μ = {mu0} &nbsp;&nbsp;&nbsp; H₁ : {h1_str}
+                </div>
+                <div style="font-size:.82rem;color:#64748B;margin-top:.3rem;">
+                    α = {alpha} &nbsp;|&nbsp; prueba {cola}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Fórmula con valores sustituidos (diap. 9)
+            st.markdown(f"""
+            <div style="background:#F0F4FF;border:1px solid #BFCFE8;border-radius:12px;
+                        padding:1rem 1.2rem;margin-bottom:.8rem;">
+                <div style="font-size:.78rem;color:#1E3A8A;text-transform:uppercase;
+                            letter-spacing:.06em;font-weight:600;margin-bottom:.5rem;">
+                    Fórmula Z (diap. 9)
+                </div>
+                <div style="font-size:1.1rem;font-family:Georgia,serif;color:#0D1B2A;
+                            text-align:center;line-height:2.2;">
+                    z &nbsp;=&nbsp;
+                    <span style="display:inline-block;text-align:center;vertical-align:middle;">
+                        <span style="display:block;border-bottom:2px solid #0D1B2A;
+                                     padding:0 .4rem;">&nbsp;x̄ − μ₀&nbsp;</span>
+                        <span style="display:block;padding:0 .4rem;">σ / √n</span>
+                    </span>
+                    &nbsp;=&nbsp;
+                    <span style="display:inline-block;text-align:center;vertical-align:middle;">
+                        <span style="display:block;border-bottom:2px solid #0D1B2A;
+                                     padding:0 .4rem;">&nbsp;{xbar:.4f} − {mu0}&nbsp;</span>
+                        <span style="display:block;padding:0 .4rem;">{sigma_val:.4f} / √{n_z}</span>
+                    </span>
+                    &nbsp;=&nbsp;<b>{z_obs:.4f}</b>
+                </div>
+                <div style="font-size:.82rem;color:#64748B;margin-top:.4rem;text-align:center;">
+                    SE = σ/√n = {sigma_val:.4f}/√{n_z} = <b>{se:.4f}</b>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Tabla de valores clave
+            tabla_vals = pd.DataFrame({
+                "Elemento":       ["z observado", "z crítico", "p-valor", f"IC {int((1-alpha)*100)}%  LI", f"IC {int((1-alpha)*100)}%  LS"],
+                "Valor":          [f"{z_obs:.4f}",
+                                   f"±{z_crit:.4f}" if cola=="bilateral" else f"{z_crit:.4f}",
+                                   f"{p_val:.6f}",
+                                   f"{ic_li:.4f}",
+                                   f"{ic_ls:.4f}"],
+            })
+            st.dataframe(tabla_vals, use_container_width=True, hide_index=True, height=215)
+
+            # ── VEREDICTO ──
+            if rechaza:
+                st.markdown(f"""
+                <div style="background:#FEF2F2;border:2px solid #DC2626;border-radius:14px;
+                            padding:1.2rem 1.4rem;margin-top:.8rem;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;color:#DC2626;
+                                letter-spacing:.5px;">
+                        ❌ SE RECHAZA H₀
+                    </div>
+                    <div style="font-size:.88rem;color:#7F1D1D;margin-top:.4rem;">
+                        p-valor ({p_val:.6f}) &lt; α ({alpha})<br>
+                        Hay evidencia suficiente para afirmar que <b>μ ≠ {mu0}</b>
+                        con {int((1-alpha)*100)}% de confianza.
+                    </div>
+                    <div style="font-size:.78rem;color:#9CA3AF;margin-top:.3rem;">
+                        |z| = {abs(z_obs):.4f} {">" if cola!="bilateral" else ">"} z_crit = {abs(z_crit):.4f}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="background:#F0FDF4;border:2px solid #16A34A;border-radius:14px;
+                            padding:1.2rem 1.4rem;margin-top:.8rem;text-align:center;">
+                    <div style="font-size:1.6rem;font-weight:800;color:#16A34A;
+                                letter-spacing:.5px;">
+                        ✅ SE ACEPTA H₀
+                    </div>
+                    <div style="font-size:.88rem;color:#14532D;margin-top:.4rem;">
+                        p-valor ({p_val:.6f}) ≥ α ({alpha})<br>
+                        No hay evidencia suficiente para rechazar que <b>μ = {mu0}</b>.
+                    </div>
+                    <div style="font-size:.78rem;color:#9CA3AF;margin-top:.3rem;">
+                        |z| = {abs(z_obs):.4f} {"<" if cola!="bilateral" else "<"} z_crit = {abs(z_crit):.4f}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Interpretación del IC (diap. 18)
+            mu0_en_ic = ic_li <= mu0 <= ic_ls
+            st.markdown(f"""
+            <div style="background:#FFFFFF;border:1px solid #E2EAF4;border-radius:10px;
+                        padding:.75rem 1rem;margin-top:.8rem;">
+                <span style="font-size:.78rem;color:#64748B;text-transform:uppercase;
+                             letter-spacing:.06em;font-weight:500;">
+                    Intervalo de confianza {int((1-alpha)*100)}% (diap. 13/18)
+                </span><br>
+                <span style="font-size:.92rem;color:#0D1B2A;">
+                    ({ic_li:.4f} , {ic_ls:.4f})
+                </span><br>
+                <span style="font-size:.82rem;color:#64748B;">
+                    {"✅ μ₀ = " + str(mu0) + " está DENTRO del IC → consistente con no rechazar H₀."
+                      if mu0_en_ic
+                      else "❌ μ₀ = " + str(mu0) + " está FUERA del IC → consistente con rechazar H₀."}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── Step 4: gráfica N(0,1) con región crítica ──────────────────────────
+        with plot_col:
+            st.markdown("#### ④ Distribución N(0,1) y región de rechazo")
+
+            fig2, ax2 = plt.subplots(figsize=(5.8, 4.5))
+            fig2.patch.set_facecolor("#F7F9FD")
+            ax2.set_facecolor("#FFFFFF")
+
+            x_z = np.linspace(-4, 4, 500)
+            y_z = sp_norm.pdf(x_z)
+            ax2.plot(x_z, y_z, color="#1A56DB", linewidth=2, label="N(0,1)")
+
+            # Región crítica (rojo) y p-valor (naranja) — mismo estilo que diap. 5/6/7
+            if cola == "bilateral":
+                # Región crítica ±z_crit
+                mask_r = x_z >= z_crit
+                mask_l = x_z <= -z_crit
+                ax2.fill_between(x_z, y_z, where=mask_r, color="#E53E3E", alpha=0.25, label="Región crítica")
+                ax2.fill_between(x_z, y_z, where=mask_l, color="#E53E3E", alpha=0.25)
+                # p-valor
+                if z_obs >= 0:
+                    ax2.fill_between(x_z, y_z, where=(x_z >= abs(z_obs)), color="#F97316", alpha=0.45, label="p-valor")
+                    ax2.fill_between(x_z, y_z, where=(x_z <= -abs(z_obs)), color="#F97316", alpha=0.45)
+                else:
+                    ax2.fill_between(x_z, y_z, where=(x_z <= z_obs), color="#F97316", alpha=0.45, label="p-valor")
+                    ax2.fill_between(x_z, y_z, where=(x_z >= -z_obs), color="#F97316", alpha=0.45)
+                ax2.axvline( z_crit, color="#E53E3E", linewidth=1.5, linestyle="--", label=f"z_crit = ±{z_crit:.3f}")
+                ax2.axvline(-z_crit, color="#E53E3E", linewidth=1.5, linestyle="--")
+            elif cola == "derecha":
+                mask_r = x_z >= z_crit
+                ax2.fill_between(x_z, y_z, where=mask_r, color="#E53E3E", alpha=0.25, label="Región crítica")
+                ax2.fill_between(x_z, y_z, where=(x_z >= z_obs), color="#F97316", alpha=0.45, label="p-valor")
+                ax2.axvline(z_crit, color="#E53E3E", linewidth=1.5, linestyle="--", label=f"z_crit = {z_crit:.3f}")
+            else:  # izquierda
+                mask_l = x_z <= z_crit
+                ax2.fill_between(x_z, y_z, where=mask_l, color="#E53E3E", alpha=0.25, label="Región crítica")
+                ax2.fill_between(x_z, y_z, where=(x_z <= z_obs), color="#F97316", alpha=0.45, label="p-valor")
+                ax2.axvline(z_crit, color="#E53E3E", linewidth=1.5, linestyle="--", label=f"z_crit = {z_crit:.3f}")
+
+            # z observado
+            ax2.axvline(z_obs, color="#1E3A8A", linewidth=2, linestyle=":",
+                        label=f"z obs = {z_obs:.3f}")
+
+            ax2.set_xlabel("Estadístico Z", fontsize=9.5, color="#0D1B2A")
+            ax2.set_ylabel("Densidad", fontsize=9.5, color="#0D1B2A")
+            ax2.set_title(f"Prueba {cola}  (α = {alpha})", fontsize=10.5,
+                          fontweight="bold", color="#0D1B2A", pad=8)
+            ax2.legend(fontsize=7.8, framealpha=0.8, loc="upper right")
+            ax2.set_xlim(-4, 4)
+            ax2.spines[["top", "right"]].set_visible(False)
+            ax2.spines[["left", "bottom"]].set_color("#CBD5E0")
+            ax2.tick_params(colors="#64748B", labelsize=8.5)
+            plt.tight_layout()
+            st.pyplot(fig2, use_container_width=True)
+            plt.close(fig2)
+
+            # Nota metodológica (cuidado de la diap. 3)
+            st.markdown("""
+            <div style="background:#FFFBEB;border-left:3px solid #D97706;border-radius:0 8px 8px 0;
+                        padding:.7rem 1rem;margin-top:.6rem;">
+                <span style="font-size:.8rem;color:#92400E;font-weight:600;">⚠️ Cuidado (diap. 3)</span><br>
+                <span style="font-size:.78rem;color:#78350F;">
+                    No rechazar H₀ <b>no significa</b> que H₀ sea verdadera;
+                    solo indica que no hay evidencia suficiente en esta muestra para descartarla.
+                </span>
+            </div>
+            """, unsafe_allow_html=True)

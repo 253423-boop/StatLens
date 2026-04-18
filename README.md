@@ -1,7 +1,7 @@
 # 🔬 StatLens — Análisis Estadístico
 
-Aplicación web para cargar cualquier archivo CSV y explorarlo mediante tablas y gráficas estadísticas.  
-Desarrollada con Python y Streamlit para la materia de **Probabilidad y Estadística**.
+Aplicación web para cargar cualquier archivo CSV y explorarlo con tablas, gráficas y pruebas estadísticas.  
+Desarrollada con Python y Streamlit para la materia de **Probabilidad y Estadística · UP Chiapas**.
 
 ---
 
@@ -37,8 +37,6 @@ streamlit run app.py
 
 ### 3. Abre el navegador
 
-Streamlit abre la app automáticamente. Si no, ve a:
-
 ```
 http://localhost:8501
 ```
@@ -53,22 +51,34 @@ Haz clic en el botón de carga y selecciona cualquier archivo `.csv`.
 
 | Pestaña | Contenido |
 |---|---|
-| **Vista previa** | Tabla completa con buscador y selector de filas |
-| **Estadísticas descriptivas** | Media, mediana, desv. est., Q1, Q3, IQR, sesgo para numéricas; moda y conteos para categóricas |
-| **Frecuencias** | Frec. absoluta, relativa, relativa % y acumulada; intervalos configurables para variables continuas |
-| **Estructura** | Tipo de dato, nulos, % nulos y valores únicos por columna |
-| **Gráficas** | Histograma azul con curva PDF Normal superpuesta + análisis automático de normalidad |
+| **📋 Vista previa** | Tabla completa con buscador y selector de filas |
+| **📐 Estadísticas descriptivas** | Media, mediana, desv. est., Q1/Q3, IQR, sesgo; moda y conteos para categóricas |
+| **🔢 Frecuencias** | Frec. absoluta, relativa, relativa % y acumulada; intervalos configurables |
+| **🧩 Estructura** | Tipo de dato, nulos, % nulos y únicos por columna |
+| **📈 Gráficas** | Histograma + curva PDF Normal + análisis de normalidad (Shapiro-Wilk) |
+| **🧪 Prueba Z** | Prueba de hipótesis para la media + intervalo de confianza |
 
-### Sobre la pestaña Gráficas
+---
 
-- Selecciona cualquier variable numérica del CSV.
-- Ajusta el número de barras con el slider.
-- La curva roja punteada muestra cómo se vería si los datos siguieran una distribución **Normal N(µ, σ)**.
-- El panel lateral evalúa automáticamente tres criterios:
-  - **Sesgo** — qué tan simétrica es la distribución (diap. 4 del profe).
-  - **Curtosis** — qué tan "puntiaguda" o "plana" es la campana (diap. 16).
-  - **Prueba Shapiro-Wilk** — contraste formal de normalidad (diap. 22–23).
-- Un veredicto final indica si conviene modelar con Normal o explorar otras distribuciones del árbol de decisión (diap. 20).
+## 🧪 Pestaña Prueba Z — detalle
+
+Sigue la ruta de decisión del profe Horacio (diap. 3 del PDF de Pruebas de Hipótesis):
+
+1. **Selecciona** la variable numérica a probar
+2. **Ingresa μ₀** — el valor que quieres comparar contra la media
+3. **Elige el tipo de prueba:**
+   - **Dos colas** → H₁: μ ≠ μ₀ (diap. 7)
+   - **Cola derecha** → H₁: μ > μ₀ (diap. 5)
+   - **Cola izquierda** → H₁: μ < μ₀ (diap. 6)
+4. **Fija α** (0.01, 0.05 ó 0.10)
+5. La app calcula automáticamente:
+   - **Fórmula z** con valores sustituidos paso a paso (diap. 9)
+   - **z observado**, **z crítico**, **p-valor**
+   - **Intervalo de confianza** x̄ ± z_(α/2) · σ/√n (diap. 13)
+   - **Veredicto** claro: ✅ SE ACEPTA H₀ / ❌ SE RECHAZA H₀
+   - **Gráfica** N(0,1) con región crítica y p-valor sombreado
+
+> ⚠️ No rechazar H₀ no significa que H₀ sea verdadera (diap. 3).
 
 ---
 
