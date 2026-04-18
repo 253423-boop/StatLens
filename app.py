@@ -4,6 +4,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from scipy import stats as sp_stats
+import requests
+import json
+import time
+from openai import OpenAI
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 🔑 OPENAI API KEY 
+# ══════════════════════════════════════════════════════════════════════════════
+OPENAI_API_KEY = "tu_api_key_aquí"
+
+client = OpenAI(
+  api_key=OPENAI_API_KEY
+)
+
+def gemini(prompt: str) -> str:
+    """Llama a OpenAI (antes Gemini) y devuelve el texto de respuesta."""
+    # Registro de prompts en archivo externo
+    try:
+        with open("prompts.txt", "a", encoding="utf-8") as f:
+            f.write(f"--- NUEVO PROMPT ---\n{prompt}\n\n")
+    except:
+        pass
+
+    try:
+        # Basado exactamente en el fragmento de código proporcionado
+        response = client.responses.create(
+            model="gpt-5-nano",
+            input=prompt,
+            store=True,
+        )
+        return response.output_text
+    except Exception as e:
+        # En caso de que el modelo experimental gpt-5-nano o el método responses.create falle, 
+        # intentamos el método estándar chat.completions como respaldo o informamos del error exacto.
+        try:
+            # Reintento con método estándar si el experimental falla
+            res_std = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            return res_std.choices[0].message.content
+        except:
+            return f"❌ Error al llamar a OpenAI: {e}"
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -221,6 +264,29 @@ with tab1:
     st.dataframe(display, use_container_width=True, hide_index=True, height=430)
     st.caption(f"Mostrando {len(display)} de {n_rows} registros · {n_cols} columnas")
 
+    st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+    if st.button("✨ Analizar dataset con IA", key="ia_tab1"):
+        muestra = df.head(5).to_string(index=False)
+        tipos   = df.dtypes.to_string()
+        prompt  = f"""Eres un asistente de estadística para estudiantes universitarios.
+Analiza este dataset y responde en español con un resumen ejecutivo breve.
+
+Nombre del archivo: {uploaded_file.name}
+Filas: {n_rows} | Columnas: {n_cols}
+Variables numéricas: {num_cols}
+Variables categóricas: {cat_cols}
+Valores nulos totales: {null_total}
+
+Tipos de datos:
+{tipos}
+
+Primeras 5 filas:
+{muestra}
+
+Describe en 3-5 oraciones: qué tipo de datos contiene el dataset, para qué podría usarse y si hay algo notable en su estructura (nulos, tipos mixtos, columnas interesantes)."""
+        with st.spinner("OpenAI está analizando el dataset..."):
+            st.info(gemini(prompt))
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 · Estadísticas descriptivas
 # ══════════════════════════════════════════════════════════════════════════════
@@ -258,6 +324,24 @@ with tab2:
         })
         st.dataframe(cat_summary, use_container_width=True, hide_index=True,
                      height=min(80 + 40 * len(cat_cols), 380))
+
+    st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+    if st.button("✨ Interpretar estadísticas con IA", key="ia_tab2"):
+        resumen_num = df[num_cols].describe().round(4).to_string() if num_cols else "Sin variables numéricas"
+        prompt = f"""Eres un asistente de estadística para estudiantes universitarios.
+Interpreta las siguientes estadísticas descriptivas en español, de forma clara y educativa.
+
+Dataset: {uploaded_file.name} ({n_rows} filas)
+Variables numéricas: {num_cols}
+Variables categóricas: {cat_cols}
+
+Estadísticas descriptivas:
+{resumen_num}
+
+Redacta 4-6 oraciones ejecutivas comentando: cuáles variables tienen mayor dispersión,
+si hay sesgos evidentes, rangos relevantes, y qué variables podrían ser más interesantes para analizar."""
+        with st.spinner("OpenAI está interpretando las estadísticas..."):
+            st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 3 · Tablas de frecuencia
@@ -314,6 +398,25 @@ with tab3:
         )
         st.caption(f"Total: {vc.sum()} registros · {col.nunique()} valores únicos")
 
+    st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+    if st.button("✨ Interpretar frecuencias con IA", key="ia_tab3"):
+        tabla_str = freq_df.to_string(index=False)
+        prompt = f"""Eres un asistente de estadística para estudiantes universitarios.
+Interpreta la siguiente tabla de frecuencias en español de forma clara y educativa.
+
+Variable analizada: {selected_col}
+Tipo: {"continua (agrupada en intervalos)" if is_numeric and col.nunique() > 15 else "discreta / categórica"}
+Total de registros: {len(col)}
+
+Tabla de frecuencias:
+{tabla_str}
+
+Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
+cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
+sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario."""
+        with st.spinner("OpenAI está interpretando las frecuencias..."):
+            st.info(gemini(prompt))
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 · Estructura
 # ══════════════════════════════════════════════════════════════════════════════
@@ -346,6 +449,26 @@ with tab4:
     dtype_count = df.dtypes.astype(str).value_counts().reset_index()
     dtype_count.columns = ["Tipo", "Columnas"]
     st.dataframe(dtype_count, use_container_width=True, hide_index=True, height=180)
+
+    st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+    if st.button("✨ Diagnosticar calidad de datos con IA", key="ia_tab4"):
+        struct_str = struct.to_string(index=False)
+        prompt = f"""Eres un asistente de estadística para estudiantes universitarios.
+Diagnostica la calidad estructural del siguiente dataset en español.
+
+Dataset: {uploaded_file.name}
+Filas: {n_rows} | Columnas: {n_cols}
+Nulos totales: {null_total}
+
+Estructura de columnas:
+{struct_str}
+
+Redacta 4-5 oraciones ejecutivas evaluando: la calidad general del dataset,
+columnas con valores nulos o problemas, diversidad de tipos de datos,
+y recomendaciones concretas para limpieza o análisis posterior.
+Sé directo y usa lenguaje apropiado para un estudiante universitario."""
+        with st.spinner("OpenAI está diagnosticando la calidad del dataset..."):
+            st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 5 · Gráficas
@@ -486,6 +609,24 @@ with tab5:
                 "Valor":     [n, f"{mu:.4f}", f"{sigma:.4f}", f"{skew:.4f}", f"{kurt:.4f}"],
             })
             st.dataframe(mini, use_container_width=True, hide_index=True, height=220)
+
+    st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+    if st.button("✨ Interpretar gráfica con IA", key="ia_tab5"):
+        sw_text = f"Shapiro-Wilk: W={stat_sw:.4f}, p={p_sw:.4f}" if shapiro_done else "Shapiro-Wilk: muestra muy grande, omitido"
+        prompt = f"""Eres un asistente de estadística para estudiantes universitarios.
+Interpreta el análisis de normalidad de la siguiente variable en español.
+
+Variable: {col_sel}
+n = {n} | Media = {mu:.4f} | Desv. Est. = {sigma:.4f}
+Sesgo = {skew:.4f} | Curtosis (exceso) = {kurt:.4f}
+{sw_text}
+
+Explica en 4-5 oraciones: si la variable sigue una distribución Normal,
+qué indican el sesgo y la curtosis, qué dice la prueba Shapiro-Wilk,
+y qué distribución del árbol de decisión sería más adecuada si no es Normal
+(Exponencial, Uniforme, Binomial, Poisson, etc.). Usa lenguaje para universitarios."""
+        with st.spinner("OpenAI está interpretando la distribución..."):
+            st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 6 · Prueba Z para la media (una muestra)
@@ -774,3 +915,30 @@ with tab6:
                 </span>
             </div>
             """, unsafe_allow_html=True)
+
+        st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
+        if st.button("✨ Interpretar prueba Z con IA", key="ia_tab6"):
+            resultado = "SE RECHAZA H₀" if rechaza else "SE ACEPTA H₀"
+            prompt = f"""Eres un asistente de estadística para estudiantes universitarios.
+Interpreta los resultados de esta prueba de hipótesis Z en español, de forma clara y educativa.
+
+Variable analizada: {z_col}
+Hipótesis nula: H₀: μ = {mu0}
+Hipótesis alternativa: H₁: {h1_str}
+Tipo de prueba: {cola}
+Nivel de significancia: α = {alpha}
+
+Resultados:
+- n = {n_z} | x̄ = {xbar:.4f} | s = {s_z:.4f}
+- Error estándar (SE) = {se:.4f}
+- z observado = {z_obs:.4f}
+- z crítico = {z_crit:.4f}
+- p-valor = {p_val:.6f}
+- Intervalo de confianza {int((1-alpha)*100)}%: ({ic_li:.4f}, {ic_ls:.4f})
+- Decisión: {resultado}
+
+Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
+por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
+y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario."""
+            with st.spinner("OpenAI está interpretando la prueba Z..."):
+                st.info(gemini(prompt))

@@ -1,7 +1,8 @@
-# 🔬 StatLens — Análisis Estadístico
+# 🔬 StatLens — Análisis Estadístico con IA
 
-Aplicación web para cargar cualquier archivo CSV y explorarlo con tablas, gráficas y pruebas estadísticas.  
-Desarrollada con Python y Streamlit para la materia de **Probabilidad y Estadística · UP Chiapas**.
+Aplicación web para cargar cualquier CSV y explorarlo con tablas, gráficas,
+pruebas estadísticas e interpretaciones automáticas con Gemini AI.
+Desarrollada con Python y Streamlit · **Probabilidad y Estadística · UP Chiapas**
 
 ---
 
@@ -15,80 +16,75 @@ statlens/
 
 ---
 
-## ✅ Requisitos previos
+## 🔑 Paso 1 — Agregar tu API Key de Gemini
 
-- **Python 3.8 o superior** — verifica con `python --version`
+1. Ve a **https://aistudio.google.com/app/apikey** (gratis con cuenta Google)
+2. Crea una nueva API key y cópiala
+3. Abre `app.py` con cualquier editor de texto
+4. Busca la **línea 14** y reemplaza el texto entre comillas:
+
+```python
+# ANTES
+GEMINI_API_KEY = "PEGA_TU_API_KEY_AQUI"
+
+# DESPUÉS
+GEMINI_API_KEY = "AIzaSyAbc123XYZ..."
+```
+
+5. Guarda el archivo
+
+> Sin la API key los botones ✨ muestran un aviso, pero todo lo demás funciona normal.
 
 ---
 
-## 🚀 Instalación y ejecución
-
-### 1. Instala las dependencias
+## 🚀 Paso 2 — Instalar y correr
 
 ```bash
-pip install streamlit pandas numpy matplotlib scipy
-```
-
-### 2. Inicia la aplicación
-
-```bash
+pip install streamlit pandas numpy matplotlib scipy requests
 streamlit run app.py
 ```
 
-### 3. Abre el navegador
-
-```
-http://localhost:8501
-```
-
-### 4. Carga tu CSV
-
-Haz clic en el botón de carga y selecciona cualquier archivo `.csv`.
+Abre el navegador en **http://localhost:8501** y sube tu CSV.
 
 ---
 
-## 📊 Pestañas disponibles
+## 📊 Pestañas y funciones de IA
 
-| Pestaña | Contenido |
-|---|---|
-| **📋 Vista previa** | Tabla completa con buscador y selector de filas |
-| **📐 Estadísticas descriptivas** | Media, mediana, desv. est., Q1/Q3, IQR, sesgo; moda y conteos para categóricas |
-| **🔢 Frecuencias** | Frec. absoluta, relativa, relativa % y acumulada; intervalos configurables |
-| **🧩 Estructura** | Tipo de dato, nulos, % nulos y únicos por columna |
-| **📈 Gráficas** | Histograma + curva PDF Normal + análisis de normalidad (Shapiro-Wilk) |
-| **🧪 Prueba Z** | Prueba de hipótesis para la media + intervalo de confianza |
+| Pestaña | Qué hace | Botón ✨ IA |
+|---|---|---|
+| 📋 Vista previa | Tabla con buscador y selector de filas | Resumen ejecutivo del dataset |
+| 📐 Estadísticas descriptivas | Media, mediana, desv. est., Q1/Q3, IQR, sesgo | Interpreta dispersiones y sesgos |
+| 🔢 Frecuencias | Tabla completa con frec. acumulada e intervalos | Explica la distribución de frecuencias |
+| 🧩 Estructura | Tipos de dato, nulos y valores únicos | Diagnostica calidad del dataset |
+| 📈 Gráficas | Histograma + curva Normal + Shapiro-Wilk | Interpreta normalidad y sugiere distribución |
+| 🧪 Prueba Z | Prueba de hipótesis completa con gráfica N(0,1) | Explica el resultado en lenguaje simple |
 
 ---
 
-## 🧪 Pestaña Prueba Z — detalle
+## 🧪 Cómo usar la Prueba Z
 
-Sigue la ruta de decisión del profe Horacio (diap. 3 del PDF de Pruebas de Hipótesis):
+Sigue la ruta del profe Horacio (diap. 3):
 
-1. **Selecciona** la variable numérica a probar
-2. **Ingresa μ₀** — el valor que quieres comparar contra la media
-3. **Elige el tipo de prueba:**
-   - **Dos colas** → H₁: μ ≠ μ₀ (diap. 7)
-   - **Cola derecha** → H₁: μ > μ₀ (diap. 5)
-   - **Cola izquierda** → H₁: μ < μ₀ (diap. 6)
-4. **Fija α** (0.01, 0.05 ó 0.10)
-5. La app calcula automáticamente:
-   - **Fórmula z** con valores sustituidos paso a paso (diap. 9)
-   - **z observado**, **z crítico**, **p-valor**
-   - **Intervalo de confianza** x̄ ± z_(α/2) · σ/√n (diap. 13)
-   - **Veredicto** claro: ✅ SE ACEPTA H₀ / ❌ SE RECHAZA H₀
-   - **Gráfica** N(0,1) con región crítica y p-valor sombreado
-
-> ⚠️ No rechazar H₀ no significa que H₀ sea verdadera (diap. 3).
+1. Selecciona la variable numérica
+2. Escribe el valor μ₀ que quieres comparar contra la media
+3. Elige el tipo: dos colas / cola derecha / cola izquierda
+4. Fija α (0.01, 0.05 ó 0.10)
+5. La app muestra fórmula paso a paso, z observado, z crítico, p-valor,
+   intervalo de confianza y el veredicto claro:
+   - ✅ SE ACEPTA H₀
+   - ❌ SE RECHAZA H₀
 
 ---
 
 ## 🛠 Solución de problemas
 
-**`command not found: streamlit`** → ejecuta `pip install streamlit` primero.
-
-**Puerto ocupado** → usa `streamlit run app.py --server.port 8502`
-
-**Error con matplotlib/scipy** → ejecuta `pip install matplotlib scipy`
+| Problema | Solución |
+|---|---|
+| command not found: streamlit | pip install streamlit |
+| Puerto ocupado | streamlit run app.py --server.port 8502 |
+| Error matplotlib/scipy | pip install matplotlib scipy |
+| Botón IA no responde | Verifica la API key en la línea 14 de app.py |
+| Error 400 de Gemini | La API key está mal copiada, revísala |
 
 ---
 
