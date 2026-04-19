@@ -1,0 +1,277 @@
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Analiza este dataset y responde en español con un resumen ejecutivo breve.
+
+Nombre del archivo: Encuesta_Finanzas_Universitarias.csv
+Filas: 44 | Columnas: 10
+Variables numéricas: ['ID', 'Edad', 'Ingreso_Mensual', 'Gasto_Alimentos', 'Gasto_Transporte', 'Gasto_Entretenimiento', 'Ahorro_Mensual', 'Satisfaccion_Financiera']
+Variables categóricas: ['Genero', 'Fuente_Ingreso']
+Valores nulos totales: 0
+
+Tipos de datos:
+ID                         int64
+Edad                       int64
+Genero                       str
+Ingreso_Mensual            int64
+Gasto_Alimentos            int64
+Gasto_Transporte           int64
+Gasto_Entretenimiento      int64
+Ahorro_Mensual             int64
+Fuente_Ingreso               str
+Satisfaccion_Financiera    int64
+
+Primeras 5 filas:
+ ID  Edad    Genero  Ingreso_Mensual  Gasto_Alimentos  Gasto_Transporte  Gasto_Entretenimiento  Ahorro_Mensual    Fuente_Ingreso  Satisfaccion_Financiera
+  1    21 Masculino             3500             1200               600                    500            1200    Apoyo Familiar                        4
+  2    20  Femenino             2800             1000               400                    300            1100 Trabajo Part-time                        3
+  3    22  Femenino             4500             1500               800                    600            1600              Beca                        5
+  4    19 Masculino             2000              800               500                    200             500    Apoyo Familiar                        2
+  5    23 Masculino             5500             2000               700                   1000            1800 Trabajo Part-time                        4
+
+Describe en 3-5 oraciones: qué tipo de datos contiene el dataset, para qué podría usarse y si hay algo notable en su estructura (nulos, tipos mixtos, columnas interesantes).
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta las siguientes estadísticas descriptivas en español, de forma clara y educativa.
+
+Dataset: Encuesta_Finanzas_Universitarias.csv (44 filas)
+Variables numéricas: ['ID', 'Edad', 'Ingreso_Mensual', 'Gasto_Alimentos', 'Gasto_Transporte', 'Gasto_Entretenimiento', 'Ahorro_Mensual', 'Satisfaccion_Financiera']
+Variables categóricas: ['Genero', 'Fuente_Ingreso']
+
+Estadísticas descriptivas:
+            ID     Edad  Ingreso_Mensual  Gasto_Alimentos  Gasto_Transporte  Gasto_Entretenimiento  Ahorro_Mensual  Satisfaccion_Financiera
+count  44.0000  44.0000          44.0000          44.0000           44.0000                44.0000         44.0000                  44.0000
+mean   22.5000  21.1818        3906.8182        1412.5000          598.8636               610.2273       1285.2273                   3.6818
+std    12.8452   1.4670        1224.8204         423.8699          157.1877               311.5191        374.5663                   0.9829
+min     1.0000  19.0000        1500.0000         700.0000          300.0000               100.0000        400.0000                   1.0000
+25%    11.7500  20.0000        3175.0000        1137.5000          487.5000               400.0000       1150.0000                   3.0000
+50%    22.5000  21.0000        3750.0000        1325.0000          575.0000               550.0000       1300.0000                   4.0000
+75%    33.2500  22.0000        4625.0000        1600.0000          750.0000               762.5000       1562.5000                   4.0000
+max    44.0000  24.0000        6300.0000        2400.0000          900.0000              1350.0000       1800.0000                   5.0000
+
+Redacta 4-6 oraciones ejecutivas comentando: cuáles variables tienen mayor dispersión,
+si hay sesgos evidentes, rangos relevantes, y qué variables podrían ser más interesantes para analizar.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta la siguiente tabla de frecuencias en español de forma clara y educativa.
+
+Variable analizada: Gasto_Entretenimiento
+Tipo: continua (agrupada en intervalos)
+Total de registros: 44
+
+Tabla de frecuencias:
+             Clase  Marca de clase  Frec. absoluta  Frec. relativa  Frec. relativa %  Frec. acumulada  Frec. acum. rel. %
+  [100.00, 204.17)      152.083333               4        0.090909          9.090909                4            9.090909
+  [204.17, 308.33)      256.250000               4        0.090909          9.090909                8           18.181818
+  [308.33, 412.50)      360.416667               6        0.136364         13.636364               14           31.818182
+  [412.50, 516.67)      464.583333               7        0.159091         15.909091               21           47.727273
+  [516.67, 620.83)      568.750000               5        0.113636         11.363636               26           59.090909
+  [620.83, 725.00)      672.916667               5        0.113636         11.363636               31           70.454545
+  [725.00, 829.17)      777.083333               4        0.090909          9.090909               35           79.545455
+  [829.17, 933.33)      881.250000               1        0.022727          2.272727               36           81.818182
+ [933.33, 1037.50)      985.416667               3        0.068182          6.818182               39           88.636364
+[1037.50, 1141.67)     1089.583333               1        0.022727          2.272727               40           90.909091
+[1141.67, 1245.83)     1193.750000               2        0.045455          4.545455               42           95.454545
+[1245.83, 1350.00)     1297.916667               2        0.045455          4.545455               44          100.000000
+
+Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
+cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
+sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta la siguiente tabla de frecuencias en español de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Tipo: continua (agrupada en intervalos)
+Total de registros: 44
+
+Tabla de frecuencias:
+             Clase  Marca de clase  Frec. absoluta  Frec. relativa  Frec. relativa %  Frec. acumulada  Frec. acum. rel. %
+[1500.00, 2185.71)     1842.857143               4        0.090909          9.090909                4            9.090909
+[2185.71, 2871.43)     2528.571429               3        0.068182          6.818182                7           15.909091
+[2871.43, 3557.14)     3214.285714              12        0.272727         27.272727               19           43.181818
+[3557.14, 4242.86)     3900.000000              10        0.227273         22.727273               29           65.909091
+[4242.86, 4928.57)     4585.714286               6        0.136364         13.636364               35           79.545455
+[4928.57, 5614.29)     5271.428571               4        0.090909          9.090909               39           88.636364
+[5614.29, 6300.00)     5957.142857               5        0.113636         11.363636               44          100.000000
+
+Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
+cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
+sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta la siguiente tabla de frecuencias en español de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Tipo: continua (agrupada en intervalos)
+Total de registros: 44
+
+Tabla de frecuencias:
+             Clase  Marca de clase  Frec. absoluta  Frec. relativa  Frec. relativa %  Frec. acumulada  Frec. acum. rel. %
+[1500.00, 1980.00)          1740.0               2        0.045455          4.545455                2            4.545455
+[1980.00, 2460.00)          2220.0               4        0.090909          9.090909                6           13.636364
+[2460.00, 2940.00)          2700.0               2        0.045455          4.545455                8           18.181818
+[2940.00, 3420.00)          3180.0               8        0.181818         18.181818               16           36.363636
+[3420.00, 3900.00)          3660.0               7        0.159091         15.909091               23           52.272727
+[3900.00, 4380.00)          4140.0               7        0.159091         15.909091               30           68.181818
+[4380.00, 4860.00)          4620.0               5        0.113636         11.363636               35           79.545455
+[4860.00, 5340.00)          5100.0               1        0.022727          2.272727               36           81.818182
+[5340.00, 5820.00)          5580.0               4        0.090909          9.090909               40           90.909091
+[5820.00, 6300.00)          6060.0               4        0.090909          9.090909               44          100.000000
+
+Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
+cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
+sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta las siguientes estadísticas descriptivas en español, de forma clara y educativa.
+
+Dataset: Encuesta_Finanzas_Universitarias.csv (44 filas)
+Variables numéricas: ['ID', 'Edad', 'Ingreso_Mensual', 'Gasto_Alimentos', 'Gasto_Transporte', 'Gasto_Entretenimiento', 'Ahorro_Mensual', 'Satisfaccion_Financiera']
+Variables categóricas: ['Genero', 'Fuente_Ingreso']
+
+Estadísticas descriptivas:
+            ID     Edad  Ingreso_Mensual  Gasto_Alimentos  Gasto_Transporte  Gasto_Entretenimiento  Ahorro_Mensual  Satisfaccion_Financiera
+count  44.0000  44.0000          44.0000          44.0000           44.0000                44.0000         44.0000                  44.0000
+mean   22.5000  21.1818        3906.8182        1412.5000          598.8636               610.2273       1285.2273                   3.6818
+std    12.8452   1.4670        1224.8204         423.8699          157.1877               311.5191        374.5663                   0.9829
+min     1.0000  19.0000        1500.0000         700.0000          300.0000               100.0000        400.0000                   1.0000
+25%    11.7500  20.0000        3175.0000        1137.5000          487.5000               400.0000       1150.0000                   3.0000
+50%    22.5000  21.0000        3750.0000        1325.0000          575.0000               550.0000       1300.0000                   4.0000
+75%    33.2500  22.0000        4625.0000        1600.0000          750.0000               762.5000       1562.5000                   4.0000
+max    44.0000  24.0000        6300.0000        2400.0000          900.0000              1350.0000       1800.0000                   5.0000
+
+Redacta 4-6 oraciones ejecutivas comentando: cuáles variables tienen mayor dispersión,
+si hay sesgos evidentes, rangos relevantes, y qué variables podrían ser más interesantes para analizar.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta la siguiente tabla de frecuencias en español de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Tipo: continua (agrupada en intervalos)
+Total de registros: 44
+
+Tabla de frecuencias:
+             Clase  Marca de clase  Frec. absoluta  Frec. relativa  Frec. relativa %  Frec. acumulada  Frec. acum. rel. %
+[1500.00, 1740.00)          1620.0               1        0.022727          2.272727                1            2.272727
+[1740.00, 1980.00)          1860.0               1        0.022727          2.272727                2            4.545455
+[1980.00, 2220.00)          2100.0               3        0.068182          6.818182                5           11.363636
+[2220.00, 2460.00)          2340.0               1        0.022727          2.272727                6           13.636364
+[2460.00, 2700.00)          2580.0               0        0.000000          0.000000                6           13.636364
+[2700.00, 2940.00)          2820.0               2        0.045455          4.545455                8           18.181818
+[2940.00, 3180.00)          3060.0               3        0.068182          6.818182               11           25.000000
+[3180.00, 3420.00)          3300.0               5        0.113636         11.363636               16           36.363636
+[3420.00, 3660.00)          3540.0               5        0.113636         11.363636               21           47.727273
+[3660.00, 3900.00)          3780.0               2        0.045455          4.545455               23           52.272727
+[3900.00, 4140.00)          4020.0               4        0.090909          9.090909               27           61.363636
+[4140.00, 4380.00)          4260.0               3        0.068182          6.818182               30           68.181818
+[4380.00, 4620.00)          4500.0               3        0.068182          6.818182               33           75.000000
+[4620.00, 4860.00)          4740.0               2        0.045455          4.545455               35           79.545455
+[4860.00, 5100.00)          4980.0               0        0.000000          0.000000               35           79.545455
+[5100.00, 5340.00)          5220.0               1        0.022727          2.272727               36           81.818182
+[5340.00, 5580.00)          5460.0               3        0.068182          6.818182               39           88.636364
+[5580.00, 5820.00)          5700.0               1        0.022727          2.272727               40           90.909091
+[5820.00, 6060.00)          5940.0               2        0.045455          4.545455               42           95.454545
+[6060.00, 6300.00)          6180.0               2        0.045455          4.545455               44          100.000000
+
+Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
+cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
+sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta los resultados de esta prueba de hipótesis Z en español, de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Hipótesis nula: H₀: μ = 13.0
+Hipótesis alternativa: H₁: μ ≠ 13.0
+Tipo de prueba: bilateral
+Nivel de significancia: α = 0.05
+
+Resultados:
+- n = 44 | x̄ = 3906.8182 | s = 1224.8204
+- Error estándar (SE) = 184.6486
+- z observado = 21.0877
+- z crítico = 1.9600
+- p-valor = 0.000000
+- Intervalo de confianza 95%: (3544.9135, 4268.7228)
+- Decisión: SE RECHAZA H₀
+
+Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
+por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
+y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta los resultados de esta prueba de hipótesis Z en español, de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Hipótesis nula: H₀: μ = 13.0
+Hipótesis alternativa: H₁: μ ≠ 13.0
+Tipo de prueba: bilateral
+Nivel de significancia: α = 0.01
+
+Resultados:
+- n = 44 | x̄ = 3906.8182 | s = 1224.8204
+- Error estándar (SE) = 184.6486
+- z observado = 21.0877
+- z crítico = 2.5758
+- p-valor = 0.000000
+- Intervalo de confianza 99%: (3431.1949, 4382.4415)
+- Decisión: SE RECHAZA H₀
+
+Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
+por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
+y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta los resultados de esta prueba de hipótesis Z en español, de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Hipótesis nula: H₀: μ = 13.0
+Hipótesis alternativa: H₁: μ ≠ 13.0
+Tipo de prueba: bilateral
+Nivel de significancia: α = 0.01
+
+Resultados:
+- n = 44 | x̄ = 3906.8182 | s = 1224.8204
+- Error estándar (SE) = 184.6486
+- z observado = 21.0877
+- z crítico = 2.5758
+- p-valor = 0.000000
+- Intervalo de confianza 99%: (3431.1949, 4382.4415)
+- Decisión: SE RECHAZA H₀
+
+Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
+por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
+y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario.
+
+--- NUEVO PROMPT ---
+Eres un asistente de estadística para estudiantes universitarios.
+Interpreta los resultados de esta prueba de hipótesis Z en español, de forma clara y educativa.
+
+Variable analizada: Ingreso_Mensual
+Hipótesis nula: H₀: μ = 13.0
+Hipótesis alternativa: H₁: μ ≠ 13.0
+Tipo de prueba: bilateral
+Nivel de significancia: α = 0.01
+
+Resultados:
+- n = 44 | x̄ = 3906.8182 | s = 1224.8204
+- Error estándar (SE) = 184.6486
+- z observado = 21.0877
+- z crítico = 2.5758
+- p-valor = 0.000000
+- Intervalo de confianza 99%: (3431.1949, 4382.4415)
+- Decisión: SE RECHAZA H₀
+
+Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
+por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
+y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario.
+

@@ -4,49 +4,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from scipy import stats as sp_stats
-import requests
-import json
+import google.generativeai as genai
 import time
-from openai import OpenAI
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 🔑 OPENAI API KEY 
+# 🔑 GOOGLE GEMINI API KEY 
 # ══════════════════════════════════════════════════════════════════════════════
-OPENAI_API_KEY = "tu_api_key_aquí"
+GEMINI_API_KEY = "AIzaSyDbiR1qtAB2cx8ymOBiwNVpuuSj2-yIQP0"
 
-client = OpenAI(
-  api_key=OPENAI_API_KEY
-)
+genai.configure(api_key=GEMINI_API_KEY)
+# Usamos gemini-3-flash-preview que es el modelo más reciente disponible en tu cuenta
+model = genai.GenerativeModel("gemini-3-flash-preview")
 
 def gemini(prompt: str) -> str:
-    """Llama a OpenAI (antes Gemini) y devuelve el texto de respuesta."""
-    # Registro de prompts en archivo externo
+    """Llama a Google Gemini con manejo de cuota."""
     try:
-        with open("prompts.txt", "a", encoding="utf-8") as f:
-            f.write(f"--- NUEVO PROMPT ---\n{prompt}\n\n")
-    except:
-        pass
-
-    try:
-        # Basado exactamente en el fragmento de código proporcionado
-        response = client.responses.create(
-            model="gpt-5-nano",
-            input=prompt,
-            store=True,
-        )
-        return response.output_text
+        # Pequeña pausa para no saturar la API gratuita
+        time.sleep(1)
+        response = model.generate_content(prompt)
+        return response.text
     except Exception as e:
-        # En caso de que el modelo experimental gpt-5-nano o el método responses.create falle, 
-        # intentamos el método estándar chat.completions como respaldo o informamos del error exacto.
-        try:
-            # Reintento con método estándar si el experimental falla
-            res_std = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            return res_std.choices[0].message.content
-        except:
-            return f"❌ Error al llamar a OpenAI: {e}"
+        error_str = str(e)
+        if "429" in error_str or "quota" in error_str.lower():
+            return "❌ **Límite de velocidad alcanzado**: La versión gratuita permite pocas consultas por minuto. **Espera 30 segundos** y reintenta."
+        return f"❌ Error al llamar a Gemini: {e}"
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -165,37 +146,61 @@ st.markdown("""
 # ── Upload ────────────────────────────────────────────────────────────────────
 st.markdown('<p class="section-title">Cargar datos</p>', unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader(
-    "CSV",
-    type=["csv"],
-    help="Sube cualquier archivo en formato CSV",
-    label_visibility="collapsed",
-)
+data_source = st.radio("Fuente de datos", ["Cargar CSV", "Generar datos sintéticos"], label_visibility="collapsed")
 
-if uploaded_file is None:
-    st.markdown("""
-    <div style="text-align:center; padding:3.5rem 0; color:#94A3B8;">
-        <div style="font-size:3rem; margin-bottom:.6rem;">📂</div>
-        <p style="font-size:1rem; font-weight:500; color:#64748B; margin:0;">
-            Sube un archivo CSV para comenzar
-        </p>
-        <p style="font-size:0.83rem; color:#94A3B8; margin:.4rem 0 0;">
-            Compatible con cualquier CSV separado por comas
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.stop()
+if data_source == "Cargar CSV":
+    uploaded_file = st.file_uploader(
+        "CSV",
+        type=["csv"],
+        help="Sube cualquier archivo en formato CSV",
+        label_visibility="collapsed",
+    )
 
-# ── Load CSV ──────────────────────────────────────────────────────────────────
-try:
-    df = pd.read_csv(uploaded_file)
-except Exception as e:
-    st.error(f"❌ No se pudo leer el archivo: {e}")
-    st.stop()
+    if uploaded_file is None:
+        st.markdown("""
+        <div style="text-align:center; padding:3.5rem 0; color:#94A3B8;">
+            <div style="font-size:3rem; margin-bottom:.6rem;">📂</div>
+            <p style="font-size:1rem; font-weight:500; color:#64748B; margin:0;">
+                Sube un archivo CSV para comenzar
+            </p>
+            <p style="font-size:0.83rem; color:#94A3B8; margin:.4rem 0 0;">
+                Compatible con cualquier CSV separado por comas
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.stop()
+
+    try:
+        df = pd.read_csv(uploaded_file)
+    except Exception as e:
+        st.error(f"❌ No se pudo leer el archivo: {e}")
+        st.stop()
+
+else:  # Generar datos sintéticos
+    st.markdown("#### Generar datos sintéticos")
+    dist = st.selectbox("Distribución", ["Normal", "Exponencial", "Uniforme"])
+    n = st.slider("Tamaño de muestra (n)", min_value=30, max_value=10000, value=100)
+    
+    if dist == "Normal":
+        mean = st.number_input("Media (μ)", value=0.0, step=0.1)
+        std = st.number_input("Desviación estándar (σ)", min_value=0.1, value=1.0, step=0.1)
+        data = np.random.normal(mean, std, n)
+        df = pd.DataFrame({"Normal": data})
+    elif dist == "Exponencial":
+        scale = st.number_input("Escala (1/λ)", min_value=0.1, value=1.0, step=0.1)
+        data = np.random.exponential(scale, n)
+        df = pd.DataFrame({"Exponencial": data})
+    else:  # Uniforme
+        low = st.number_input("Límite inferior", value=0.0, step=0.1)
+        high = st.number_input("Límite superior", value=1.0, step=0.1)
+        data = np.random.uniform(low, high, n)
+        df = pd.DataFrame({"Uniforme": data})
+    
+    uploaded_file = type('obj', (object,), {'name': f"Datos sintéticos - {dist}"})()  # Mock object
 
 n_rows, n_cols = df.shape
 num_cols   = df.select_dtypes(include="number").columns.tolist()
-cat_cols   = df.select_dtypes(include="object").columns.tolist()
+cat_cols   = df.select_dtypes(include=["object", "string"]).columns.tolist()
 null_total = int(df.isnull().sum().sum())
 
 # ── Stats chips ───────────────────────────────────────────────────────────────
@@ -261,7 +266,7 @@ with tab1:
         display = display[mask]
     display = display.head(chosen_rows)
 
-    st.dataframe(display, use_container_width=True, hide_index=True, height=430)
+    st.dataframe(display, width='stretch', hide_index=True, height=430)
     st.caption(f"Mostrando {len(display)} de {n_rows} registros · {n_cols} columnas")
 
     st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
@@ -284,7 +289,7 @@ Primeras 5 filas:
 {muestra}
 
 Describe en 3-5 oraciones: qué tipo de datos contiene el dataset, para qué podría usarse y si hay algo notable en su estructura (nulos, tipos mixtos, columnas interesantes)."""
-        with st.spinner("OpenAI está analizando el dataset..."):
+        with st.spinner("La IA está analizando el dataset..."):
             st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -306,7 +311,7 @@ with tab2:
                          "Q1 (25%)", "Mediana", "Q3 (75%)", "Máx", "Sesgo", "IQR"]
         st.dataframe(
             desc.style.format({c: "{:.4f}" for c in desc.columns if c != "Variable"}),
-            use_container_width=True, hide_index=True,
+            width='stretch', hide_index=True,
             height=min(80 + 40 * len(num_cols), 520),
         )
         st.caption("N = valores no nulos · IQR = rango intercuartílico · Sesgo = asimetría de Fisher")
@@ -322,7 +327,7 @@ with tab2:
             "Frec. moda": [df[c].value_counts().iloc[0] if not df[c].value_counts().empty else 0 for c in cat_cols],
             "Nulos":      [df[c].isnull().sum() for c in cat_cols],
         })
-        st.dataframe(cat_summary, use_container_width=True, hide_index=True,
+        st.dataframe(cat_summary, width='stretch', hide_index=True,
                      height=min(80 + 40 * len(cat_cols), 380))
 
     st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
@@ -340,7 +345,7 @@ Estadísticas descriptivas:
 
 Redacta 4-6 oraciones ejecutivas comentando: cuáles variables tienen mayor dispersión,
 si hay sesgos evidentes, rangos relevantes, y qué variables podrían ser más interesantes para analizar."""
-        with st.spinner("OpenAI está interpretando las estadísticas..."):
+        with st.spinner("La IA está interpretando las estadísticas..."):
             st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -373,7 +378,7 @@ with tab3:
                 "Frec. relativa %":   "{:.2f}%",
                 "Frec. acum. rel. %": "{:.2f}%",
             }),
-            use_container_width=True, hide_index=True,
+            width='stretch', hide_index=True,
             height=min(80 + 40 * n_bins, 480),
         )
         st.caption(f"Total: {counts.sum()} registros · {n_bins} clases")
@@ -393,7 +398,7 @@ with tab3:
                 "Frec. relativa %":   "{:.2f}%",
                 "Frec. acum. rel. %": "{:.2f}%",
             }),
-            use_container_width=True, hide_index=True,
+            width='stretch', hide_index=True,
             height=min(80 + 40 * len(freq_df), 480),
         )
         st.caption(f"Total: {vc.sum()} registros · {col.nunique()} valores únicos")
@@ -414,7 +419,7 @@ Tabla de frecuencias:
 Redacta 3-5 oraciones explicando: dónde se concentran los datos (moda o clase modal),
 cómo se distribuye la frecuencia acumulada, y si la distribución parece uniforme,
 sesgada o bimodal. Usa lenguaje apropiado para un estudiante universitario."""
-        with st.spinner("OpenAI está interpretando las frecuencias..."):
+        with st.spinner("La IA está interpretando las frecuencias..."):
             st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -435,7 +440,7 @@ with tab4:
     })
     st.dataframe(
         struct.style.format({"% nulos": "{:.1f}%"}),
-        use_container_width=True, hide_index=True,
+        width='stretch', hide_index=True,
         height=min(80 + 40 * n_cols, 520),
     )
 
@@ -448,7 +453,7 @@ with tab4:
                 unsafe_allow_html=True)
     dtype_count = df.dtypes.astype(str).value_counts().reset_index()
     dtype_count.columns = ["Tipo", "Columnas"]
-    st.dataframe(dtype_count, use_container_width=True, hide_index=True, height=180)
+    st.dataframe(dtype_count, width='stretch', hide_index=True, height=180)
 
     st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
     if st.button("✨ Diagnosticar calidad de datos con IA", key="ia_tab4"):
@@ -467,34 +472,44 @@ Redacta 4-5 oraciones ejecutivas evaluando: la calidad general del dataset,
 columnas con valores nulos o problemas, diversidad de tipos de datos,
 y recomendaciones concretas para limpieza o análisis posterior.
 Sé directo y usa lenguaje apropiado para un estudiante universitario."""
-        with st.spinner("OpenAI está diagnosticando la calidad del dataset..."):
+        with st.spinner("La IA está diagnosticando la calidad del dataset..."):
             st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 5 · Gráficas
 # ══════════════════════════════════════════════════════════════════════════════
 with tab5:
-    st.markdown('<p class="section-title" style="margin-top:.8rem;">Histograma y análisis de normalidad</p>',
+    st.markdown('<p class="section-title" style="margin-top:.8rem;">Visualización de distribuciones</p>',
                 unsafe_allow_html=True)
 
     if not num_cols:
         st.info("El dataset no contiene columnas numéricas para graficar.")
     else:
+        # ── Plot type selector ──
+        plot_type = st.selectbox("Tipo de gráfica", ["Histograma", "KDE", "Boxplot"])
+        
         # ── Column selector ──
         col_sel = st.selectbox(
             "Variable a graficar",
             num_cols,
             label_visibility="collapsed",
         )
-        n_bins = st.slider("Número de barras (bins)", min_value=3, max_value=30, value=8,
-                           key="hist_bins")
-
+        
         col_data = df[col_sel].dropna()
         mu    = col_data.mean()
         sigma = col_data.std()
         skew  = col_data.skew()
         kurt  = col_data.kurt()   # exceso de curtosis (Fisher)
         n     = len(col_data)
+        
+        # Outliers
+        q1 = col_data.quantile(0.25)
+        q3 = col_data.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        outliers = col_data[(col_data < lower_bound) | (col_data > upper_bound)]
+        n_outliers = len(outliers)
 
         # ── Shapiro-Wilk (solo si n <= 5000) ──
         if n <= 5000:
@@ -511,33 +526,72 @@ with tab5:
             fig.patch.set_facecolor("#F7F9FD")
             ax.set_facecolor("#FFFFFF")
 
-            # Histogram
-            counts, bin_edges, patches = ax.hist(
-                col_data, bins=n_bins,
-                color="#1A56DB", edgecolor="#FFFFFF",
-                linewidth=0.8, alpha=0.88,
-            )
+            if plot_type == "Histograma":
+                n_bins = st.slider("Número de barras (bins)", min_value=3, max_value=30, value=8,
+                                   key="hist_bins")
+                # Histogram
+                counts, bin_edges, patches = ax.hist(
+                    col_data, bins=n_bins,
+                    color="#1A56DB", edgecolor="#FFFFFF",
+                    linewidth=0.8, alpha=0.88,
+                )
 
-            # PDF curve N(µ, σ) overlay
-            x_range = np.linspace(col_data.min(), col_data.max(), 300)
-            bin_width = bin_edges[1] - bin_edges[0]
-            pdf_scaled = sp_stats.norm.pdf(x_range, mu, sigma) * n * bin_width
-            ax.plot(x_range, pdf_scaled, color="#E53E3E", linewidth=2,
-                    linestyle="--", label=f"PDF Normal N({mu:.1f}, {sigma:.1f})")
+                # PDF curve N(µ, σ) overlay
+                x_range = np.linspace(col_data.min(), col_data.max(), 300)
+                bin_width = bin_edges[1] - bin_edges[0]
+                pdf_scaled = sp_stats.norm.pdf(x_range, mu, sigma) * n * bin_width
+                ax.plot(x_range, pdf_scaled, color="#E53E3E", linewidth=2,
+                        linestyle="--", label=f"PDF Normal N({mu:.1f}, {sigma:.1f})")
 
-            # Mean line
-            ax.axvline(mu, color="#1E3A8A", linewidth=1.6,
-                       linestyle=":", label=f"Media = {mu:.2f}")
+                # Mean line
+                ax.axvline(mu, color="#1E3A8A", linewidth=1.6,
+                           linestyle=":", label=f"Media = {mu:.2f}")
 
-            ax.set_xlabel(col_sel, fontsize=10, color="#0D1B2A")
-            ax.set_ylabel("Frecuencia", fontsize=10, color="#0D1B2A")
-            ax.set_title(f"Histograma — {col_sel}", fontsize=11,
-                         fontweight="bold", color="#0D1B2A", pad=10)
-            ax.legend(fontsize=8.5, framealpha=0.7)
+                ax.set_xlabel(col_sel, fontsize=10, color="#0D1B2A")
+                ax.set_ylabel("Frecuencia", fontsize=10, color="#0D1B2A")
+                ax.set_title(f"Histograma — {col_sel}", fontsize=11,
+                             fontweight="bold", color="#0D1B2A", pad=10)
+                ax.legend(fontsize=8.5, framealpha=0.7)
+                
+            elif plot_type == "KDE":
+                from scipy.stats import gaussian_kde
+                kde = gaussian_kde(col_data)
+                x_range = np.linspace(col_data.min(), col_data.max(), 300)
+                ax.plot(x_range, kde(x_range), color="#1A56DB", linewidth=2, label="KDE")
+                
+                # PDF curve N(µ, σ) overlay
+                pdf_vals = sp_stats.norm.pdf(x_range, mu, sigma)
+                ax.plot(x_range, pdf_vals, color="#E53E3E", linewidth=2,
+                        linestyle="--", label=f"PDF Normal N({mu:.1f}, {sigma:.1f})")
+                
+                # Mean line
+                ax.axvline(mu, color="#1E3A8A", linewidth=1.6,
+                           linestyle=":", label=f"Media = {mu:.2f}")
+
+                ax.set_xlabel(col_sel, fontsize=10, color="#0D1B2A")
+                ax.set_ylabel("Densidad", fontsize=10, color="#0D1B2A")
+                ax.set_title(f"KDE — {col_sel}", fontsize=11,
+                             fontweight="bold", color="#0D1B2A", pad=10)
+                ax.legend(fontsize=8.5, framealpha=0.7)
+                
+            else:  # Boxplot
+                ax.boxplot(col_data, vert=True, patch_artist=True, 
+                          boxprops=dict(facecolor="#1A56DB", color="#1A56DB"),
+                          medianprops=dict(color="#FFFFFF", linewidth=2),
+                          whiskerprops=dict(color="#1A56DB"),
+                          capprops=dict(color="#1A56DB"),
+                          flierprops=dict(marker='o', color='#E53E3E', markersize=5))
+                ax.set_ylabel(col_sel, fontsize=10, color="#0D1B2A")
+                ax.set_title(f"Boxplot — {col_sel}", fontsize=11,
+                             fontweight="bold", color="#0D1B2A", pad=10)
+                # No x labels for single boxplot
+                ax.set_xticks([])
+
             ax.spines[["top", "right"]].set_visible(False)
             ax.spines[["left", "bottom"]].set_color("#CBD5E0")
             ax.tick_params(colors="#64748B", labelsize=8.5)
-            ax.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+            if plot_type != "Boxplot":
+                ax.yaxis.set_major_locator(mticker.MaxNLocator(integer=True))
             plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
             plt.close(fig)
@@ -564,7 +618,10 @@ with tab5:
             else:
                 sw_verdict = ("ℹ️", "Shapiro-Wilk", "Muestra > 5 000; prueba omitida.")
 
-            checks = [skew_verdict, kurt_verdict, sw_verdict]
+            # Outliers
+            outliers_verdict = ("✅", "Sin outliers", "No hay valores atípicos detectados.") if n_outliers == 0 else ("⚠️", f"{n_outliers} outliers", f"Se detectaron {n_outliers} valores atípicos.")
+
+            checks = [skew_verdict, kurt_verdict, sw_verdict, outliers_verdict]
             positives = sum(1 for c in checks if c[0] == "✅")
 
             for icon, label, explanation in checks:
@@ -583,9 +640,9 @@ with tab5:
             # ── Veredicto final ──
             st.markdown("<hr style='border:none;border-top:1px solid #E2EAF4;margin:.8rem 0'>",
                         unsafe_allow_html=True)
-            if positives == 3:
+            if positives == 4:
                 verdict_color, verdict_icon, verdict_text = "#1A56DB", "🔔", "Los datos **se comportan como una distribución Normal**. Puedes usar el modelo N(µ, σ²) de la diapositiva 16 del profe Horacio."
-            elif positives >= 2:
+            elif positives >= 3:
                 verdict_color, verdict_icon, verdict_text = "#D97706", "🟡", "Los datos son **aproximadamente normales**, con algunas desviaciones. Verifica visualmente si la curva roja se ajusta bien al histograma."
             else:
                 verdict_color, verdict_icon, verdict_text = "#DC2626", "🚨", "Los datos **no parecen normales**. Considera otras distribuciones del árbol de decisión (diap. 20): Exponencial, Uniforme o alguna discreta."
@@ -605,10 +662,10 @@ with tab5:
             # ── Stats mini-table ──
             st.markdown("<br>", unsafe_allow_html=True)
             mini = pd.DataFrame({
-                "Parámetro": ["n", "Media (µ)", "Desv. Est. (σ)", "Sesgo", "Curtosis (exc.)"],
-                "Valor":     [n, f"{mu:.4f}", f"{sigma:.4f}", f"{skew:.4f}", f"{kurt:.4f}"],
+                "Parámetro": ["n", "Media (µ)", "Desv. Est. (σ)", "Sesgo", "Curtosis (exc.)", "Q1", "Q3", "IQR", "Outliers"],
+                "Valor":     [str(n), f"{mu:.4f}", f"{sigma:.4f}", f"{skew:.4f}", f"{kurt:.4f}", f"{q1:.4f}", f"{q3:.4f}", f"{iqr:.4f}", str(n_outliers)],
             })
-            st.dataframe(mini, use_container_width=True, hide_index=True, height=220)
+            st.dataframe(mini, width='stretch', hide_index=True, height=280)
 
     st.markdown("<hr style=\'border:none;border-top:1px solid #E2EAF4;margin:1.2rem 0\'>", unsafe_allow_html=True)
     if st.button("✨ Interpretar gráfica con IA", key="ia_tab5"):
@@ -619,13 +676,14 @@ Interpreta el análisis de normalidad de la siguiente variable en español.
 Variable: {col_sel}
 n = {n} | Media = {mu:.4f} | Desv. Est. = {sigma:.4f}
 Sesgo = {skew:.4f} | Curtosis (exceso) = {kurt:.4f}
+Q1 = {q1:.4f} | Q3 = {q3:.4f} | IQR = {iqr:.4f} | Outliers = {n_outliers}
 {sw_text}
 
 Explica en 4-5 oraciones: si la variable sigue una distribución Normal,
 qué indican el sesgo y la curtosis, qué dice la prueba Shapiro-Wilk,
-y qué distribución del árbol de decisión sería más adecuada si no es Normal
+si hay outliers y qué implican, y qué distribución del árbol de decisión sería más adecuada si no es Normal
 (Exponencial, Uniforme, Binomial, Poisson, etc.). Usa lenguaje para universitarios."""
-        with st.spinner("OpenAI está interpretando la distribución..."):
+        with st.spinner("La IA está interpretando la distribución..."):
             st.info(gemini(prompt))
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -789,7 +847,7 @@ with tab6:
                                    f"{ic_li:.4f}",
                                    f"{ic_ls:.4f}"],
             })
-            st.dataframe(tabla_vals, use_container_width=True, hide_index=True, height=215)
+            st.dataframe(tabla_vals, width='stretch', hide_index=True, height=215)
 
             # ── VEREDICTO ──
             if rechaza:
@@ -940,5 +998,5 @@ Resultados:
 Explica en 4-6 oraciones: qué significa este resultado en el contexto de los datos,
 por qué se rechaza o acepta H₀, qué implica el p-valor, qué dice el intervalo de confianza,
 y cuál es la conclusión práctica. Usa lenguaje apropiado para un estudiante universitario."""
-            with st.spinner("OpenAI está interpretando la prueba Z..."):
+            with st.spinner("La IA está interpretando la prueba Z..."):
                 st.info(gemini(prompt))
